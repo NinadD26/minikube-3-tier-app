@@ -1,2 +1,1 @@
-# minikube-3-tier-app
-3 tier app installation using minikube
+checkout the blog written on this project --> https://medium.com/@sriniv.v29/00521aeee4de
