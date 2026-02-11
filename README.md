@@ -205,7 +205,68 @@ Let me trace what happens when you add a task:
    └─> React updates UI
    └─> You see "Buy groceries" in the list!
 ```
+1) Stop & Delete the Current Application (YAML version)
 
+From project root:
+
+cd D:\Three-tier-Application-Deployment-\k8s_manifests
+
+Delete application resources
+kubectl delete -f .
+
+
+If it fails due to subfolders, run:
+
+kubectl delete -f mongo -n three-tier
+kubectl delete -f backend-deployment.yaml -n three-tier
+kubectl delete -f backend-service.yaml -n three-tier
+kubectl delete -f frontend-deployment.yaml -n three-tier
+kubectl delete -f frontend-service.yaml -n three-tier
+kubectl delete -f minikube-ingress.yaml -n three-tier
+
+Verify everything is gone
+kubectl get all -n three-tier
+kubectl get ingress -n three-tier
+
+2) (Optional) Remove Namespace Completely
+kubectl delete namespace three-tier
+kubectl get ns
+
+
+Recreate:
+
+kubectl create namespace three-tier
+
+3) Clean Minikube (optional but recommended)
+minikube stop
+minikube delete
+minikube start
+minikube addons enable ingress
+minikube tunnel
+
+4) Redeploy Application (YAML Flow)
+
+From manifests folder:
+
+cd D:\Three-tier-Application-Deployment-\k8s_manifests
+
+Apply in correct order
+kubectl apply -f mongo/secrets.yaml -n three-tier
+kubectl apply -f mongo/deploy.yaml -n three-tier
+kubectl apply -f mongo/service.yaml -n three-tier
+
+kubectl apply -f backend-deployment.yaml -n three-tier
+kubectl apply -f backend-service.yaml -n three-tier
+
+kubectl apply -f frontend-deployment.yaml -n three-tier
+kubectl apply -f frontend-service.yaml -n three-tier
+
+kubectl apply -f minikube-ingress.yaml
+
+5) Verify
+kubectl get pods -n three-tier
+kubectl get svc -n three-tier
+kubectl get ingress -n three-tier
 ---
 
 ┌─────────────────────────────────────────────────────────────┐
