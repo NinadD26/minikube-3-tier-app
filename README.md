@@ -1,4 +1,4 @@
-checkout the blog written on this project --> https://medium.com/@sriniv.v29/00521aeee4de
+
 Change 1: Frontend Deployment
 File: frontend-deployment.yaml
 BEFORE:
