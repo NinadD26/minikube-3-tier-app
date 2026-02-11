@@ -1,24 +1,121 @@
-Change 1: Frontend Deployment
+README.md
+# Three-Tier Application on Minikube (MongoDB + Backend + Frontend)
 
-File: frontend-deployment.yaml
-BEFORE:
-yaml- name: REACT_APP_BACKEND_URL
-  value: "backend:8080"
-AFTER:
-yaml- name: REACT_APP_BACKEND_URL
+This project deploys a **3-tier web application** on Kubernetes using **Minikube**.
+
+## Stack
+- **MongoDB** – Database tier  
+- **Node.js Backend API** – Application tier  
+- **React Frontend** – Presentation tier  
+- **NGINX Ingress** – Traffic routing
+
+---
+
+## Architecture
+
+Browser  
+→ NGINX Ingress (`http://127.0.0.1`)  
+→ Frontend Service  
+→ Backend Service  
+→ MongoDB Service  
+
+---
+
+## Prerequisites
+
+- Docker  
+- kubectl  
+- Minikube  
+
+Start Minikube:
+
+```bash
+minikube start
+Verify:
+
+bash
+Copy code
+kubectl get nodes
+Step 1: Create Namespace
+bash
+Copy code
+kubectl create namespace three-tier
+Step 2: Deploy MongoDB
+bash
+Copy code
+cd k8s_manifests/mongo
+
+kubectl apply -f secrets.yaml -n three-tier
+kubectl apply -f deploy.yaml -n three-tier
+kubectl apply -f service.yaml -n three-tier
+Verify:
+
+bash
+Copy code
+kubectl get pods -n three-tier
+kubectl get svc -n three-tier
+Step 3: Deploy Backend
+bash
+Copy code
+cd ../
+kubectl apply -f backend-deployment.yaml -n three-tier
+kubectl apply -f backend-service.yaml -n three-tier
+Step 4: Deploy Frontend
+bash
+Copy code
+kubectl apply -f frontend-deployment.yaml -n three-tier
+kubectl apply -f frontend-service.yaml -n three-tier
+Step 5: Enable Ingress in Minikube
+bash
+Copy code
+minikube addons enable ingress
+Verify:
+
+bash
+Copy code
+kubectl get pods -n ingress-nginx
+Step 6: Apply Ingress
+bash
+Copy code
+kubectl apply -f minikube-ingress.yaml
+Verify:
+
+bash
+Copy code
+kubectl get ingress -n three-tier
+Step 7: Start Tunnel
+Keep this terminal open:
+
+bash
+Copy code
+minikube tunnel
+App is available at:
+
+text
+Copy code
+http://127.0.0.1
+Testing
+Open browser:
+
+text
+Copy code
+http://127.0.0.1
+Add a task → refresh → task should persist.
+
+Configuration Fixes
+Frontend API Fix
+frontend-deployment.yaml
+
+yaml
+Copy code
+- name: REACT_APP_BACKEND_URL
   value: "/api/tasks"
-WHY:
+Ingress Routing
+minikube-ingress.yaml
 
-React runs in the browser (your computer), not in the pod
-"backend:8080" is internal cluster DNS - browsers can't access it
-/api/tasks is a relative path - browser sends requests to same origin
-With Ingress, requests to http://127.0.0.1/api/tasks get routed to backend service
-
-
-Change 2: Ingress Configuration
-File: minikube-ingress.yaml
-FINAL VERSION:
-yamlapiVersion: networking.k8s.io/v1
+yaml
+Copy code
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: three-tier-ingress
@@ -42,29 +139,24 @@ spec:
                 name: frontend
                 port:
                   number: 3000
-WHY:
+MongoDB Auth Fix
+backend-deployment.yaml
 
-Ingress = Traffic Router - single entry point for all requests
-Requests to /api/* → go to backend service
-Requests to / → go to frontend service
-We removed the rewrite-target annotation because it was incorrectly stripping /api
+yaml
+Copy code
+value: mongodb://admin:password123@mongodb-svc:27017/todo?authSource=admin&directConnection=true
+Common Issues
+Issue	Fix
+No External IP	Run minikube tunnel
+Cannot GET /	Check Ingress paths
+Backend not connecting	Fix MongoDB auth URL
 
+Final Verification
 
-Change 3: Backend MongoDB Connection
-File: backend-deployment.yaml
-BEFORE:
-yamlvalue: mongodb://mongodb-svc:27017/todo?directConnection=true
-AFTER:
-yamlvalue: mongodb://admin:password123@mongodb-svc:27017/todo?authSource=admin&directConnection=true
-```
-
-**WHY:**
-- MongoDB requires **authentication** (username + password)
-- Format: `mongodb://username:password@host:port/database?authSource=admin`
-- `admin` and `password123` are from your secrets.yaml (base64 encoded)
-- Without this, backend couldn't connect to MongoDB → `Unauthorized` error
-
----
+kubectl get pods -n three-tier
+kubectl get svc -n three-tier
+kubectl get ingress -n three-tier
+All pods should be Running.
 
 ## 🔄 **COMPLETE REQUEST FLOW**
 
@@ -116,68 +208,39 @@ Let me trace what happens when you add a task:
 
 ---
 
-## 🏗️ **ARCHITECTURE DIAGRAM**
-```
 ┌─────────────────────────────────────────────────────────────┐
-│                    YOUR BROWSER                              │
+│                    YOUR BROWSER                             │
 │              http://127.0.0.1/                              │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         │ (minikube tunnel)
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│             MINIKUBE CLUSTER (192.168.49.2)                  │
-│                                                               │
+│             MINIKUBE CLUSTER (192.168.49.2)                 │
+│                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │         INGRESS CONTROLLER (Nginx)                   │   │
 │  │  Rules:                                              │   │
-│  │    /api/* → backend:8080                            │   │
-│  │    /*     → frontend:3000                           │   │
+│  │    /api/* → backend:8080                             │   │
+│  │    /*     → frontend:3000                            │   │
 │  └──────────────────┬──────────────┬────────────────────┘   │
 │                     │              │                         │
-│          ┌──────────▼──────┐   ┌──▼─────────────┐          │
-│          │  Frontend Pod   │   │  Backend Pod    │          │
-│          │  (React App)    │   │  (Node.js API)  │          │
-│          │  Port: 3000     │   │  Port: 8080     │          │
-│          │                 │   │                 │          │
-│          │  Serves HTML/   │   │  /api/tasks    │          │
-│          │  JS/CSS to      │   │  - GET         │          │
-│          │  browser        │   │  - POST        │          │
-│          │                 │   │  - PUT         │          │
-│          └─────────────────┘   │  - DELETE      │          │
-│                                 └────────┬────────┘          │
-│                                          │                   │
-│                                          │ MongoDB           │
-│                                          │ Connection        │
-│                                          ▼                   │
-│                              ┌────────────────────┐         │
-│                              │   MongoDB Pod      │         │
-│                              │   Port: 27017      │         │
-│                              │                    │         │
-│                              │   Database: todo   │         │
-│                              │   Collection:      │         │
-│                              │     tasks          │         │
-│                              └────────────────────┘         │
-│                                                               │
+│          ┌──────────▼──────┐   ┌──▼─────────────┐           │
+│          │  Frontend Pod   │   │  Backend Pod    │           │
+│          │  (React App)    │   │  (Node.js API)  │           │
+│          │  Port: 3000     │   │  Port: 8080     │           │
+│          │                 │   │  /api/tasks     │           │
+│          │  Serves HTML/   │   │  - GET          │           │
+│          │  JS/CSS to      │   │  - POST         │           │
+│          │  browser        │   │  - PUT          │           │
+│          │                 │   │  - DELETE       │           │
+│          └─────────────────┘   └────────┬────────┘           │
+│                                          │                    │
+│                                          ▼                    │
+│                              ┌────────────────────┐           │
+│                              │   MongoDB Pod      │           │
+│                              │   Port: 27017      │           │
+│                              │   Database: todo   │           │
+│                              │   Collection:tasks │           │
+│                              └────────────────────┘           │
 └───────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🔑 **KEY CONCEPTS EXPLAINED**
-
-### **1. Why Ingress Instead of NodePort?**
-
-**NodePort Approach:**
-```
-Browser → Frontend NodePort (30007) → Frontend Pod
-Browser → Backend NodePort (30080) → Backend Pod
-```
-❌ **Problems:**
-- Two separate entry points
-- CORS issues (different ports)
-- Need to hardcode Minikube IP
-
-**Ingress Approach:**
-```
-Browser → Ingress (80) → Routes to Frontend OR Backend
