@@ -49,19 +49,21 @@ Remove-Item * -Recurse -Force
 # Go back to chart root
 cd ..
 ```
+## 📂 Project Directory Structure
 
-### Verify Directory/ folder Structure 
-```
 Three-tier-Application-Deployment/
 ├── backend/
 ├── frontend/
 ├── k8s_manifests/
 └── helm-chart/
     └── three-tier-app/
-        ├── charts/
-        ├── templates/
         ├── Chart.yaml
-        └── values.yaml
+        ├── values.yaml
+        ├── charts/
+        └── templates/
+
+```
+
 
 Step 3: Create Chart Files
 3.1 Edit Chart.yaml
