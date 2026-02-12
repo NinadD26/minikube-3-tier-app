@@ -69,6 +69,7 @@ Step 3: Create Chart Files
 3.1 Edit Chart.yaml
 Location: helm-chart/three-tier-app/Chart.yaml
 Replace content with:
+```
 yamlapiVersion: v2
 name: three-tier-app
 description: A Helm chart for Three-Tier Todo Application
@@ -126,16 +127,19 @@ frontend:
 ingress:
   enabled: true
   className: nginx
-
+```
 3.3 Create Template Files
 Navigate to templates directory:
 powershellcd helm-chart\three-tier-app\templates
 Create the following files:
+```
 templates/namespace.yaml
 yamlapiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Values.namespace }}
+```
+```
 templates/mongodb-secret.yaml
 yaml{{- if .Values.mongodb.enabled }}
 apiVersion: v1
@@ -148,6 +152,9 @@ data:
   username: {{ .Values.mongodb.auth.username | b64enc | quote }}
   password: {{ .Values.mongodb.auth.password | b64enc | quote }}
 {{- end }}
+
+```
+```
 templates/mongodb-deployment.yaml
 yaml{{- if .Values.mongodb.enabled }}
 apiVersion: apps/v1
@@ -184,6 +191,9 @@ spec:
               name: mongo-sec
               key: password
 {{- end }}
+
+```
+```
 templates/mongodb-service.yaml
 yaml{{- if .Values.mongodb.enabled }}
 apiVersion: v1
@@ -200,6 +210,9 @@ spec:
     targetPort: {{ .Values.mongodb.service.port }}
   type: ClusterIP
 {{- end }}
+
+```
+```
 templates/backend-deployment.yaml
 yaml{{- if .Values.backend.enabled }}
 apiVersion: apps/v1
@@ -251,6 +264,9 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
 {{- end }}
+
+```
+```
 templates/backend-service.yaml
 yaml{{- if .Values.backend.enabled }}
 apiVersion: v1
@@ -266,6 +282,9 @@ spec:
   selector:
     role: backend
 {{- end }}
+
+```
+```
 templates/frontend-deployment.yaml
 yaml{{- if .Values.frontend.enabled }}
 apiVersion: apps/v1
@@ -295,6 +314,9 @@ spec:
         ports:
         - containerPort: {{ .Values.frontend.service.port }}
 {{- end }}
+
+```
+```
 templates/frontend-service.yaml
 yaml{{- if .Values.frontend.enabled }}
 apiVersion: v1
@@ -310,6 +332,9 @@ spec:
   selector:
     role: frontend
 {{- end }}
+
+```
+```
 templates/ingress.yaml
 yaml{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
@@ -337,7 +362,7 @@ spec:
             port:
               number: {{ .Values.frontend.service.port }}
 {{- end }}
-
+```
 Step 4: Validate Helm Chart
 powershell# Navigate to helm-chart directory
 cd D:\Three-tier-Application-Deployment\helm-chart
