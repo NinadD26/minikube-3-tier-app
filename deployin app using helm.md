@@ -50,7 +50,7 @@ Remove-Item * -Recurse -Force
 cd ..
 ```
 
-### Verify Directory Structure
+### Verify Directory/ folder Structure 
 ```
 Three-tier-Application-Deployment/
 ├── backend/
