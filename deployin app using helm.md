@@ -58,10 +58,10 @@ Three-tier-Application-Deployment/
 ├── k8s_manifests/
 └── helm-chart/
     └── three-tier-app/
-        ├── Chart.yaml
-        ├── values.yaml
         ├── charts/
-        └── templates/
+        ├── templates/
+        ├── Chart.yaml
+        └── values.yaml
 
 Step 3: Create Chart Files
 3.1 Edit Chart.yaml
